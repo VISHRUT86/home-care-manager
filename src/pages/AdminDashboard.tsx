@@ -1,130 +1,181 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
+  LogOut, 
   Users, 
   MessageSquare, 
   Plus, 
-  Edit3, 
   Trash2, 
-  Download, 
-  LogOut,
-  Heart,
-  Eye,
+  Download,
+  Search,
   Calendar,
-  Phone,
-  Mail
+  Badge,
+  UserPlus,
+  X
 } from 'lucide-react';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+interface Staff {
+  id: string;
+  name: string;
+  position: string;
+  department: string;
+  bio: string;
+  image_url: string;
+  phone: string;
+  email: string;
+  years_experience: number;
+  qualifications: string[];
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('contacts');
+  const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const navigate = useNavigate();
+  const { admin, logout } = useAdminAuth();
   const { toast } = useToast();
 
-  // Sample contact submissions - in real app this would come from backend
-  const [contactSubmissions] = useState([
+  useEffect(() => {
+    // Redirect if not logged in
+    if (!admin) {
+      navigate('/admin');
+      return;
+    }
+    fetchStaff();
+  }, [admin, navigate]);
+
+  const fetchStaff = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setStaffMembers(data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch staff members",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sample data for contact submissions
+  const contactSubmissions = [
     {
       id: 1,
-      name: 'John Smith',
-      email: 'john.smith@email.com',
-      phone: '(555) 123-4567',
-      message: 'I need nursing care for my elderly mother who recently had hip surgery.',
-      submittedAt: '2024-01-15T10:30:00Z',
-      status: 'new'
+      name: "John Smith",
+      email: "john.smith@email.com",
+      message: "I need information about home healthcare services for my elderly mother.",
+      status: "New",
+      submittedAt: "2024-01-15T10:30:00Z"
     },
     {
       id: 2,
-      name: 'Mary Johnson',
-      email: 'mary.j@email.com',
-      phone: '(555) 987-6543',
-      message: 'Looking for pediatric nursing care for my son with special needs.',
-      submittedAt: '2024-01-14T14:20:00Z',
-      status: 'reviewed'
+      name: "Sarah Johnson",
+      email: "sarah.j@email.com",
+      message: "Can you provide details about your physical therapy programs?",
+      status: "Replied",
+      submittedAt: "2024-01-14T14:22:00Z"
     },
     {
       id: 3,
-      name: 'Robert Davis',
-      email: 'robert.davis@email.com',
-      phone: '(555) 456-7890',
-      message: 'Need post-surgical care following my heart procedure.',
-      submittedAt: '2024-01-13T09:15:00Z',
-      status: 'contacted'
+      name: "Michael Davis",
+      email: "m.davis@email.com",
+      message: "I'm interested in your nursing services. What are your rates?",
+      status: "In Progress",
+      submittedAt: "2024-01-13T09:15:00Z"
     }
-  ]);
-
-  // Sample staff data - in real app this would come from backend
-  const [staffMembers, setStaffMembers] = useState([
-    {
-      id: 1,
-      name: 'Sarah Johnson',
-      role: 'Registered Nurse',
-      photo: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face',
-      specialties: ['Elderly Care', 'Chronic Disease Management'],
-      experience: '8 years',
-      addedAt: '2024-01-10T00:00:00Z'
-    },
-    {
-      id: 2,
-      name: 'Michael Chen',
-      role: 'Licensed Practical Nurse',
-      photo: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face',
-      specialties: ['Post-Surgical Care', 'Wound Care'],
-      experience: '6 years',
-      addedAt: '2024-01-08T00:00:00Z'
-    }
-  ]);
-
-  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
-  const [newStaff, setNewStaff] = useState({
-    name: '',
-    role: '',
-    photo: '',
-    specialties: '',
-    experience: ''
-  });
+  ];
 
   const handleLogout = () => {
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
+    logout();
     navigate('/admin');
   };
 
-  const handleAddStaff = () => {
-    if (!newStaff.name || !newStaff.role || !newStaff.experience) {
+  const handleAddStaff = async (staffData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('staff')
+        .insert({
+          name: staffData.name,
+          position: staffData.role,
+          department: staffData.department || 'General',
+          bio: staffData.bio || '',
+          image_url: staffData.photoUrl,
+          phone: staffData.phone || '',
+          email: staffData.email || '',
+          years_experience: parseInt(staffData.experience) || 0,
+          qualifications: staffData.specialties.split(',').map((s: string) => s.trim()).filter(Boolean),
+          display_order: staffMembers.length,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setStaffMembers([...staffMembers, data]);
+      setShowAddStaffModal(false);
+      setNewStaffData({
+        name: '',
+        role: '',
+        department: '',
+        bio: '',
+        photoUrl: '',
+        phone: '',
+        email: '',
+        experience: '',
+        specialties: ''
+      });
+
+      toast({
+        title: "Success",
+        description: "Staff member added successfully",
+      });
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields.",
+        description: "Failed to add staff member",
         variant: "destructive",
       });
-      return;
     }
-
-    const staff = {
-      id: Date.now(),
-      ...newStaff,
-      specialties: newStaff.specialties.split(',').map(s => s.trim()),
-      photo: newStaff.photo || `https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face`,
-      addedAt: new Date().toISOString()
-    };
-
-    setStaffMembers(prev => [...prev, staff]);
-    setNewStaff({ name: '', role: '', photo: '', specialties: '', experience: '' });
-    setShowAddStaffModal(false);
-    
-    toast({
-      title: "Staff Added",
-      description: "New staff member has been added successfully.",
-    });
   };
 
-  const handleDeleteStaff = (id: number) => {
-    setStaffMembers(prev => prev.filter(staff => staff.id !== id));
-    toast({
-      title: "Staff Removed",
-      description: "Staff member has been removed from the system.",
-    });
+  const handleDeleteStaff = async (staffId: string) => {
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .delete()
+        .eq('id', staffId);
+
+      if (error) throw error;
+
+      setStaffMembers(staffMembers.filter(staff => staff.id !== staffId));
+      
+      toast({
+        title: "Success",
+        description: "Staff member deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete staff member",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -139,44 +190,48 @@ const AdminDashboard = () => {
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      new: 'bg-red-100 text-red-800',
-      reviewed: 'bg-yellow-100 text-yellow-800',
-      contacted: 'bg-green-100 text-green-800'
+      'New': 'bg-red-100 text-red-800',
+      'Replied': 'bg-yellow-100 text-yellow-800',
+      'In Progress': 'bg-green-100 text-green-800'
     };
-    return styles[status as keyof typeof styles] || styles.new;
+    return styles[status as keyof typeof styles] || styles['New'];
   };
+
+  const [newStaffData, setNewStaffData] = useState({
+    name: '',
+    role: '',
+    department: '',
+    bio: '',
+    photoUrl: '',
+    phone: '',
+    email: '',
+    experience: '',
+    specialties: ''
+  });
 
   return (
     <div className="min-h-screen bg-gradient-soft">
       {/* Header */}
-      <header className="bg-white shadow-[var(--shadow-medium)] border-b border-border">
-        <div className="container-custom py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-br from-primary to-accent p-2 rounded-xl">
-                <Heart className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">CareConnect Admin</h1>
-                <p className="text-muted-foreground">Dashboard & Management System</p>
-              </div>
-            </div>
-            
-            <button
-              onClick={handleLogout}
-              className="btn-secondary flex items-center space-x-2"
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Logout</span>
-            </button>
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">CareConnect Admin</h1>
+            <p className="text-sm text-muted-foreground">Welcome, {admin?.name}</p>
           </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-2 px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LogOut className="h-5 w-5" />
+            <span>Logout</span>
+          </button>
         </div>
       </header>
 
-      <div className="container-custom py-8">
+      <div className="container mx-auto px-6 py-8">
         {/* Tab Navigation */}
-        <div className="bg-white rounded-2xl shadow-[var(--shadow-medium)] mb-8">
-          <div className="flex border-b border-border">
+        <div className="bg-white rounded-lg shadow-sm mb-8">
+          <div className="flex border-b border-gray-200">
             <button
               onClick={() => setActiveTab('contacts')}
               className={`flex-1 px-6 py-4 font-medium transition-colors ${
@@ -202,232 +257,245 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Contact Submissions Tab */}
-        {activeTab === 'contacts' && (
-          <div className="bg-white rounded-2xl shadow-[var(--shadow-medium)] overflow-hidden">
-            <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-foreground">Contact Form Submissions</h2>
-                <button className="btn-secondary flex items-center space-x-2">
+        {/* Tab Content */}
+        <div className="bg-white rounded-lg shadow-sm">
+          {/* Contact Submissions */}
+          {activeTab === 'contacts' && (
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-foreground">Contact Submissions</h2>
+                <button className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
                   <Download className="h-5 w-5" />
-                  <span>Export CSV</span>
+                  <span>Export Data</span>
                 </button>
               </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              {contactSubmissions.length > 0 ? (
+
+              <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-muted/50">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="text-left px-6 py-4 font-medium text-foreground">Contact Info</th>
-                      <th className="text-left px-6 py-4 font-medium text-foreground">Message</th>
-                      <th className="text-left px-6 py-4 font-medium text-foreground">Status</th>
-                      <th className="text-left px-6 py-4 font-medium text-foreground">Submitted</th>
-                      <th className="text-left px-6 py-4 font-medium text-foreground">Actions</th>
+                      <th className="text-left px-4 py-3 font-medium text-foreground">Name</th>
+                      <th className="text-left px-4 py-3 font-medium text-foreground">Email</th>
+                      <th className="text-left px-4 py-3 font-medium text-foreground">Message</th>
+                      <th className="text-left px-4 py-3 font-medium text-foreground">Status</th>
+                      <th className="text-left px-4 py-3 font-medium text-foreground">Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {contactSubmissions.map((submission) => (
-                      <tr key={submission.id} className="border-t border-border hover:bg-muted/20">
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-medium text-foreground">{submission.name}</p>
-                            <p className="text-sm text-muted-foreground flex items-center">
-                              <Mail className="h-4 w-4 mr-1" />
-                              {submission.email}
-                            </p>
-                            <p className="text-sm text-muted-foreground flex items-center">
-                              <Phone className="h-4 w-4 mr-1" />
-                              {submission.phone}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm text-muted-foreground max-w-md">
-                            {submission.message}
-                          </p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(submission.status)}`}>
+                      <tr key={submission.id} className="border-t border-gray-200">
+                        <td className="px-4 py-3 text-foreground">{submission.name}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{submission.email}</td>
+                        <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">{submission.message}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(submission.status)}`}>
                             {submission.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm text-muted-foreground flex items-center">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            {formatDate(submission.submittedAt)}
-                          </p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex space-x-2">
-                            <button className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{formatDate(submission.submittedAt)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              ) : (
-                <div className="p-12 text-center">
-                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No contact submissions yet.</p>
-                </div>
-              )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Staff Management Tab */}
-        {activeTab === 'staff' && (
-          <div className="bg-white rounded-2xl shadow-[var(--shadow-medium)] overflow-hidden">
-            <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-foreground">Staff Management</h2>
-                <button
+          {/* Staff Management */}
+          {activeTab === 'staff' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-foreground">Staff Management</h2>
+                <button 
                   onClick={() => setShowAddStaffModal(true)}
-                  className="btn-hero flex items-center space-x-2"
+                  className="flex items-center space-x-2 btn-primary"
                 >
-                  <Plus className="h-5 w-5" />
+                  <UserPlus className="h-5 w-5" />
                   <span>Add Staff Member</span>
                 </button>
               </div>
-            </div>
-            
-            <div className="p-6">
-              {staffMembers.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                  <p className="mt-2 text-muted-foreground">Loading staff members...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {staffMembers.map((staff) => (
-                    <div key={staff.id} className="card-service group">
-                      <div className="relative mb-4">
+                    <div key={staff.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-start justify-between mb-4">
                         <img 
-                          src={staff.photo} 
+                          src={staff.image_url || '/api/placeholder/150/150'} 
                           alt={staff.name}
-                          className="w-20 h-20 rounded-full mx-auto object-cover shadow-[var(--shadow-medium)]"
+                          className="w-16 h-16 rounded-full object-cover"
                         />
-                        <div className="absolute top-0 right-0 flex space-x-1">
-                          <button className="p-1 bg-white shadow-lg rounded-full text-primary hover:bg-primary hover:text-white transition-colors">
-                            <Edit3 className="h-4 w-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteStaff(staff.id)}
-                            className="p-1 bg-white shadow-lg rounded-full text-red-600 hover:bg-red-600 hover:text-white transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleDeleteStaff(staff.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
                       </div>
                       
-                      <div className="text-center">
-                        <h3 className="font-bold text-foreground mb-1">{staff.name}</h3>
-                        <p className="text-primary font-medium mb-2">{staff.role}</p>
-                        <p className="text-sm text-muted-foreground mb-3">{staff.experience} experience</p>
-                        
-                        <div className="flex flex-wrap gap-1 justify-center">
-                          {staff.specialties.map((specialty, idx) => (
+                      <h3 className="font-semibold text-foreground mb-1">{staff.name}</h3>
+                      <p className="text-primary font-medium mb-2">{staff.position}</p>
+                      {staff.department && (
+                        <p className="text-sm text-muted-foreground mb-1">{staff.department}</p>
+                      )}
+                      <p className="text-sm text-muted-foreground mb-3">{staff.years_experience} years experience</p>
+                      
+                      {staff.qualifications && staff.qualifications.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {staff.qualifications.map((qualification, index) => (
                             <span 
-                              key={idx}
-                              className="bg-primary/10 text-primary px-2 py-1 rounded text-xs"
+                              key={index}
+                              className="inline-block bg-primary/10 text-primary text-xs px-2 py-1 rounded"
                             >
-                              {specialty}
+                              {qualification}
                             </span>
                           ))}
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No staff members added yet.</p>
-                </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Add Staff Modal */}
         {showAddStaffModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-[var(--shadow-large)] max-w-md w-full p-6">
-              <h3 className="text-xl font-bold text-foreground mb-6">Add New Staff Member</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Name *</label>
-                  <input
-                    type="text"
-                    value={newStaff.name}
-                    onChange={(e) => setNewStaff(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                    placeholder="Enter staff name"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Role *</label>
-                  <input
-                    type="text"
-                    value={newStaff.role}
-                    onChange={(e) => setNewStaff(prev => ({ ...prev, role: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                    placeholder="e.g., Registered Nurse"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Photo URL</label>
-                  <input
-                    type="url"
-                    value={newStaff.photo}
-                    onChange={(e) => setNewStaff(prev => ({ ...prev, photo: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                    placeholder="https://example.com/photo.jpg"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Experience *</label>
-                  <input
-                    type="text"
-                    value={newStaff.experience}
-                    onChange={(e) => setNewStaff(prev => ({ ...prev, experience: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                    placeholder="e.g., 5 years"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Specialties</label>
-                  <input
-                    type="text"
-                    value={newStaff.specialties}
-                    onChange={(e) => setNewStaff(prev => ({ ...prev, specialties: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                    placeholder="Elderly Care, Wound Care (comma separated)"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex space-x-4 mt-6">
+            <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 className="text-xl font-semibold text-foreground">Add New Staff Member</h3>
                 <button
                   onClick={() => setShowAddStaffModal(false)}
-                  className="flex-1 btn-secondary"
+                  className="text-muted-foreground hover:text-foreground"
                 >
-                  Cancel
+                  <X className="h-6 w-6" />
                 </button>
-                <button
-                  onClick={handleAddStaff}
-                  className="flex-1 btn-hero"
-                >
-                  Add Staff
-                </button>
+              </div>
+              
+              <div className="p-6">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddStaff(newStaffData);
+                }}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Name *</label>
+                      <input
+                        type="text"
+                        value={newStaffData.name}
+                        onChange={(e) => setNewStaffData({...newStaffData, name: e.target.value})}
+                        className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Position *</label>
+                      <input
+                        type="text"
+                        value={newStaffData.role}
+                        onChange={(e) => setNewStaffData({...newStaffData, role: e.target.value})}
+                        className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Department</label>
+                      <input
+                        type="text"
+                        value={newStaffData.department}
+                        onChange={(e) => setNewStaffData({...newStaffData, department: e.target.value})}
+                        className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Experience (years)</label>
+                      <input
+                        type="number"
+                        value={newStaffData.experience}
+                        onChange={(e) => setNewStaffData({...newStaffData, experience: e.target.value})}
+                        className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="5"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Photo URL</label>
+                      <input
+                        type="url"
+                        value={newStaffData.photoUrl}
+                        onChange={(e) => setNewStaffData({...newStaffData, photoUrl: e.target.value})}
+                        className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Phone</label>
+                      <input
+                        type="tel"
+                        value={newStaffData.phone}
+                        onChange={(e) => setNewStaffData({...newStaffData, phone: e.target.value})}
+                        className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Email</label>
+                      <input
+                        type="email"
+                        value={newStaffData.email}
+                        onChange={(e) => setNewStaffData({...newStaffData, email: e.target.value})}
+                        className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                    </div>
+                    
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">Bio</label>
+                      <textarea
+                        value={newStaffData.bio}
+                        onChange={(e) => setNewStaffData({...newStaffData, bio: e.target.value})}
+                        className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">Qualifications</label>
+                      <input
+                        type="text"
+                        value={newStaffData.specialties}
+                        onChange={(e) => setNewStaffData({...newStaffData, specialties: e.target.value})}
+                        className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Comma-separated qualifications"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddStaffModal(false)}
+                      className="px-4 py-2 text-muted-foreground hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      Add Staff
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>

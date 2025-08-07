@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          mobile_number: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mobile_number: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mobile_number?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      otp_codes: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          is_used: boolean
+          mobile_number: string
+          otp_code: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_used?: boolean
+          mobile_number: string
+          otp_code: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_used?: boolean
+          mobile_number?: string
+          otp_code?: string
+        }
+        Relationships: []
+      }
       staff: {
         Row: {
           bio: string | null
