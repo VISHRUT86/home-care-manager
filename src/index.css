@@ -2,41 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Professional Nursing Care Design System */
 
 @layer base {
   :root {
+    /* Background & Surface Colors */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    --foreground: 215 25% 27%;
+    
+    /* Card & Surface Elements */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 215 25% 27%;
+    
+    /* Popover Elements */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
+    --popover-foreground: 215 25% 27%;
+    
+    /* Primary Brand Colors - Professional Medical Blue */
+    --primary: 214 84% 56%;
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 214 100% 97%;
+    --primary-muted: 214 50% 90%;
+    
+    /* Secondary Colors - Soft Medical Tones */
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 215 25% 27%;
+    
+    /* Muted Colors */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    
+    /* Accent Colors - Gentle Healthcare Green */
+    --accent: 160 60% 45%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 160 60% 95%;
+    
+    /* Status Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    
+    /* Border & Input */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 214 84% 56%;
+    
+    /* Design System Tokens */
+    --radius: 0.75rem;
+    
+    /* Professional Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(214 84% 56%), hsl(214 84% 66%));
+    --gradient-soft: linear-gradient(135deg, hsl(214 100% 97%), hsl(210 40% 98%));
+    --gradient-hero: linear-gradient(135deg, hsl(214 84% 56%) 0%, hsl(214 84% 66%) 50%, hsl(160 60% 45%) 100%);
+    
+    /* Professional Shadows */
+    --shadow-soft: 0 2px 4px -1px hsl(214 84% 56% / 0.1);
+    --shadow-medium: 0 4px 6px -1px hsl(214 84% 56% / 0.1), 0 2px 4px -1px hsl(214 84% 56% / 0.06);
+    --shadow-large: 0 10px 15px -3px hsl(214 84% 56% / 0.1), 0 4px 6px -2px hsl(214 84% 56% / 0.05);
+    --shadow-glow: 0 0 20px hsl(214 84% 56% / 0.15);
+    
+    /* Animation Easings */
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +130,89 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Professional Button Variants */
+  .btn-hero {
+    @apply bg-gradient-to-r from-primary to-accent text-white px-8 py-4 rounded-xl font-semibold 
+           shadow-lg hover:shadow-xl transition-all duration-300 ease-[var(--ease-smooth)]
+           hover:scale-[1.02] hover:shadow-[var(--shadow-glow)];
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-primary border-2 border-primary px-6 py-3 rounded-lg font-semibold
+           hover:bg-primary hover:text-white transition-all duration-300 ease-[var(--ease-smooth)]
+           shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-medium)];
+  }
+  
+  .btn-soft {
+    @apply bg-primary/5 text-primary px-6 py-3 rounded-lg font-medium
+           hover:bg-primary/10 transition-all duration-300 ease-[var(--ease-smooth)];
+  }
+  
+  /* Professional Cards */
+  .card-floating {
+    @apply bg-white rounded-2xl shadow-[var(--shadow-medium)] hover:shadow-[var(--shadow-large)]
+           transition-all duration-300 ease-[var(--ease-smooth)] hover:translate-y-[-4px];
+  }
+  
+  .card-service {
+    @apply bg-white p-8 rounded-2xl shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-medium)]
+           transition-all duration-300 ease-[var(--ease-smooth)] border border-primary/10
+           hover:border-primary/20 group;
+  }
+  
+  /* Section Styling */
+  .section-padding {
+    @apply py-20 px-4 sm:px-6 lg:px-8;
+  }
+  
+  .container-custom {
+    @apply max-w-7xl mx-auto;
+  }
+  
+  /* Professional Gradients */
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-soft {
+    background: var(--gradient-soft);
+  }
+  
+  /* Animations */
+  .fade-in {
+    @apply opacity-0 translate-y-8 transition-all duration-700 ease-[var(--ease-smooth)];
+  }
+  
+  .fade-in.visible {
+    @apply opacity-100 translate-y-0;
+  }
+  
+  .slide-in-left {
+    @apply -translate-x-8 opacity-0 transition-all duration-700 ease-[var(--ease-smooth)];
+  }
+  
+  .slide-in-left.visible {
+    @apply translate-x-0 opacity-100;
+  }
+  
+  .slide-in-right {
+    @apply translate-x-8 opacity-0 transition-all duration-700 ease-[var(--ease-smooth)];
+  }
+  
+  .slide-in-right.visible {
+    @apply translate-x-0 opacity-100;
   }
 }
